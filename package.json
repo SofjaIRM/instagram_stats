@@ -1,0 +1,10 @@
+{
+  "name": "instagram_stats",
+  "version": "1.0.0",
+  "description": "Get instagram stats",
+  "main": "index.js",
+  "author": "Sofia Milho",
+  "license": "MIT",
+  "private": "true",
+  "type": "commonjs"
+}
