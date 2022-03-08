@@ -21,11 +21,13 @@ const lastFollowingList = require(`../lists/following/${lastFollowingFileName}`)
 
 const followingLists = { oldFollowingList, lastFollowingList };
 
+// New pages we started following
 function getNewFollowing({ oldFollowingList, lastFollowingList }) {
   return lastFollowingList
     .filter(({ id }) => !oldFollowingList.find((user) => user.id === id));
 }
 
+// Was not following us but started following
 function getStartedFollowingUs({ oldFollowingList, lastFollowingList }) {
   return lastFollowingList.filter((user) => (
     oldFollowingList
@@ -38,11 +40,14 @@ function getStartedFollowingUs({ oldFollowingList, lastFollowingList }) {
 }
 
 function startsProssessingFollowingStatistics() {
+  // We follow but is not following back
   const notFollowingBack = followingLists.lastFollowingList
     .filter(({ follows_viewer }) => !follows_viewer)
 
+  // New user we follow
   const newFollowing = getNewFollowing(followingLists);
 
+  // Started following back after we follow them
   const followedAndFollowedBack = getNewFollowing(followingLists)
     .filter(({followed_by_viewer, follows_viewer}) => followed_by_viewer && follows_viewer)
 
