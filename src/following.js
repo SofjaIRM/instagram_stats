@@ -26,9 +26,9 @@ function getNewFollowing({ oldFollowingList, lastFollowingList }) {
 }
 
 function getStartedFollowingUs({ oldFollowingList, lastFollowingList }) {
-  return lastFollowingList
-    .filter((user) => (
-      oldFollowingList.find(({id, follows_viewer}) => {
+  return lastFollowingList.filter((user) => (
+    oldFollowingList
+      .find(({id, follows_viewer}) => {
         const isSameUser = user.id === id;
         const startedFollowingUs = follows_viewer === false && user.follows_viewer === true;
         return isSameUser && startedFollowingUs;
