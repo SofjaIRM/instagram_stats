@@ -21,7 +21,7 @@ const oldFollowersList = require(`../lists/followers/${oldFollowersFileName}`);
 const lastFollowersList = require(`../lists/followers/${lastFollowersFileName}`);
 const lastFollowingList = require(`../lists/following/${lastFollowingFileName}`);
 
-const lists = { oldFollowersList, lastFollowersList };
+const followersLists = { oldFollowersList, lastFollowersList };
 
 function getNewFollowers({ oldFollowersList, lastFollowersList }) {
   return lastFollowersList
@@ -53,10 +53,10 @@ function renamedChannel({ oldFollowersList, lastFollowersList }) {
 
 function startFollowersStatistics() {
 
-  const newFollowers = getNewFollowers(lists);
-  const unfollowers = getUnfollowers(lists);
+  const newFollowers = getNewFollowers(followersLists);
+  const unfollowers = getUnfollowers(followersLists);
   const unfollowersWeFollow = getUnfollowersWeFollow(lastFollowingList, unfollowers);
-  const renamed = renamedChannel(lists);
+  const renamed = renamedChannel(followersLists);
 
   console.log(newFollowers);
 
