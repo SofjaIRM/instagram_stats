@@ -11,9 +11,10 @@ const {
 } = constants;
 
 const { sortBy } = utils;
+const { getFile } = getFileHelper;
 
-const oldFollowingFileName = getFileHelper.getFile(DIR_FOLLOWING_PATH, OLD_FILE_INDEX).file;
-const lastFollowingFileName = getFileHelper.getFile(DIR_FOLLOWING_PATH, LAST_FILE_INDEX).file;
+const oldFollowingFileName = getFile(DIR_FOLLOWING_PATH, OLD_FILE_INDEX).file;
+const lastFollowingFileName = getFile(DIR_FOLLOWING_PATH, LAST_FILE_INDEX).file;
 
 const oldFollowingList = require(`../lists/following/${oldFollowingFileName}`);
 const lastFollowingList = require(`../lists/following/${lastFollowingFileName}`);
