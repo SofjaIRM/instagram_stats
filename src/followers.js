@@ -1,97 +1,99 @@
 const fs = require('fs');
-const { getFileHelper, constants, utils} = require('../helpers/');
+const path = require('path');
+const constants = require('../helpers/constants');
+const { findUser, getFollowsList, sortBy } = require('../common');
+const { exec } = require('child_process');
 
 const {
-  CONSTANTS: {
-    OLD_FILE_INDEX,
-    LAST_FILE_INDEX,
-    DIR_FOLLOWERS_PATH,
-    DIR_FOLLOWING_PATH,
+    PREVIEWS_FILE_INDEX,
+    CURRENT_FILE_INDEX,
+    FOLLOWERS_PATH,
+    FOLLOWING_PATH,
     HISTORY_FOLLOWERS_PATH,
-  } = {},
 } = constants;
 
-const { sortBy } = utils;
-const { getFile } = getFileHelper;
+const previousFollowersFileName = getFollowsList(FOLLOWERS_PATH, PREVIEWS_FILE_INDEX);
+const currentFollowersFileName = getFollowsList(FOLLOWERS_PATH, CURRENT_FILE_INDEX);
+const currentFollowingFileName = getFollowsList(FOLLOWING_PATH, CURRENT_FILE_INDEX);
 
-const oldFollowersFileName = getFile(DIR_FOLLOWERS_PATH, OLD_FILE_INDEX).file;
-const lastFollowersFileName = getFile(DIR_FOLLOWERS_PATH, LAST_FILE_INDEX).file;
-const lastFollowingFileName = getFile(DIR_FOLLOWING_PATH, LAST_FILE_INDEX).file;
+const previousFollowersList = require(`../lists/followers/${previousFollowersFileName}`);
+const currentFollowersList = require(`../lists/followers/${currentFollowersFileName}`);
+const currentFollowingList = require(`../lists/following/${currentFollowingFileName}`);
 
-const oldFollowersList = require(`../lists/followers/${oldFollowersFileName}`);
-const lastFollowersList = require(`../lists/followers/${lastFollowersFileName}`);
-const lastFollowingList = require(`../lists/following/${lastFollowingFileName}`);
+const followersLists = { previousFollowersList, currentFollowersList };
 
-const followersLists = { oldFollowersList, lastFollowersList };
-
-function getNewFollowers({ oldFollowersList, lastFollowersList }) {
-  return lastFollowersList
-    .filter(({ id }) => !oldFollowersList.find((user) => user.id === id))
+function getNewFollowers({previousFollowersList, currentFollowersList}) {
+  return currentFollowersList.filter(({ id }) => !findUser(previousFollowersList, id));
 }
 
-function getUnfollowers({ oldFollowersList, lastFollowersList }) {
-  return oldFollowersList
-    .filter(({ id }) => !lastFollowersList.find((user) => user.id === id))
+function getUnfollowers({previousFollowersList, currentFollowersList}) {
+  return previousFollowersList.filter(({ id }) => !findUser(currentFollowersList, id))
 }
 
-function getUnfollowersWeFollow(lastWeFollowList, lastUnfollowersList) {
-  return lastWeFollowList
-    .filter(({ username }) => lastUnfollowersList.includes(username));
+function getUnfollowersWeFollow(lastWeFollowList, currentUnfollowersList) {
+  return currentUnfollowersList.filter(({ id }) => findUser(lastWeFollowList, id));
 }
 
-function renamedChannel({ oldFollowersList, lastFollowersList }) {
-  return lastFollowersList
-    .filter(({ id, username }) => (
-      oldFollowersList.find((user) => (user.id === id) && (user.username !== username)))
-    )
-    .map(({ id, username }) => {
+function getRenamedChannel({previousFollowersList, currentFollowersList}) {
+  return currentFollowersList
+    .filter(({id, username}) => (
+      previousFollowersList
+        .find((user) => (user.id === id) && (user.username !== username))))
+    .map(({id, username}) => {
       return {
-        "old": oldFollowersList.find((user) => (user.id === id)).username,
+        "old": previousFollowersList.find((user) => (user.id === id)).username,
         "current": username
       };
     });
-};
-
-function startFollowersStatistics() {
-
-  const newFollowers = getNewFollowers(followersLists);
-  const unfollowers = getUnfollowers(followersLists);
-  const unfollowersWeFollow = getUnfollowersWeFollow(lastFollowingList, unfollowers);
-  const renamed = renamedChannel(followersLists);
-
-  console.log(newFollowers);
-
-  console.log(`START COMPARING FOLLOWERS LISTS!
-  - Old list ${oldFollowersFileName}
-  - Last list ${lastFollowersFileName}
-  `);
-
-  //CMD + OPTION + L
-  fs.writeFile(
-    HISTORY_FOLLOWERS_PATH,
-    JSON.stringify({
-        "NEW_FOLLOWERS": {
-          length: newFollowers.length,
-          array: sortBy(newFollowers)
-        },
-        "UNFOLLOWED_US": {
-          length: unfollowers.length,
-          array: sortBy(unfollowers)
-        },
-        "UNFOLLOWED_US_AND_WE_FOLLOW": {
-          length: unfollowersWeFollow.length,
-          array: sortBy(unfollowersWeFollow)
-        },
-        "RENAMED_CHANNEL": {
-          length: renamed.length,
-          array: renamed
-        },
-      }
-    ),
-    function (err) {
-      if (err) return console.log(err);
-    }
-  );
 }
 
-module.exports.startFollowersStatistics = startFollowersStatistics;
+async function startFollowersStatistics() {
+  const newFollowers = getNewFollowers(followersLists);
+  const unfollowers = getUnfollowers(followersLists);
+  const unfollowersWeFollow = getUnfollowersWeFollow(currentFollowingList, unfollowers);
+  const renamed = getRenamedChannel(followersLists);
+  const filePath = path.join(__dirname, HISTORY_FOLLOWERS_PATH);
+
+  console.log(`
+  START COMPARING FOLLOWERS LISTS!
+    - Old list ${previousFollowersFileName}
+    - Last list ${currentFollowersFileName}
+  
+  File saved on: ${filePath}
+  `);
+
+  await fs.promises.writeFile(filePath, JSON.stringify(
+    {
+      "NEW_FOLLOWERS": {
+        length: newFollowers.length,
+        array: sortBy(newFollowers)
+      },
+      "UNFOLLOWED_US": {
+        length: unfollowers.length,
+        array: sortBy(unfollowers)
+      },
+      "UNFOLLOWED_US_AND_WE_FOLLOW": {
+        length: unfollowersWeFollow.length,
+        array: sortBy(unfollowersWeFollow)
+      },
+      "RENAMED_CHANNEL": {
+        length: renamed.length,
+        array: renamed
+      },
+    }, null, 2));
+
+  exec(`"/Applications/WebStorm.app/Contents/MacOS/webstorm" "${filePath}" &`,
+    (err, stdout, stderr) => {
+      if (err) console.log(`exec error: ${err}`);
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+  });
+}
+
+module.exports = {
+  getRenamedChannel,
+  getNewFollowers,
+  getUnfollowers,
+  getUnfollowersWeFollow,
+  startFollowersStatistics
+};

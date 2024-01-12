@@ -1,13 +1,19 @@
 const CONFIG = {
   FOLLOWERS: {
     HASH: 'c76146de99bb02f6415203be841dd25a',
-    PATH: 'edge_followed_by'
+    PATH: 'edge_followed_by',
+    NAME: 'Followed Count'
   },
   FOLLOWING: {
     HASH: '3dec7e2c57367ef3da3d987d89f9dbc8',
-    PATH: 'edge_follow'
+    PATH: 'edge_follow',
+    NAME: 'Followers Count'
   }
 };
+
+const LOG_STYLE = "background: #222; color: #bada55; font-size: 25px;"
+
+const SERVER_URL = "https://www.instagram.com/graphql/query/";
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -20,8 +26,20 @@ function sleep(ms) {
     setTimeout(resolve, ms)
   })
 }
-function afterUrlGenerator(hash, nextCode) {
-  return `https://www.instagram.com/graphql/query/?query_hash=${hash}&variables={"id":"${initialData.dsUserId}","include_reel":"true","fetch_mutual":"false","first":"24","after":"${nextCode}"}`
+
+function generateUrlParams(hash, ds_user_id, nextCode) {
+  let params = `?query_hash=${hash}&variables={"id":"${ds_user_id}","include_reel":"true","fetch_mutual":"false","first":"24"`;
+  if (nextCode) {
+    params +=`,"after":"${nextCode}"`;
+  }
+  return `${params}}`;
+}
+
+function generateInitialUrl(hash, ds_user_id) {
+  return `${SERVER_URL}${generateUrlParams(hash, ds_user_id)}`;
+}
+function generateNextUrl(hash, ds_user_id, nextCode) {
+  return `${SERVER_URL}${generateUrlParams(hash, ds_user_id, nextCode)}`
 }
 
 const initialData = {
@@ -36,94 +54,167 @@ const initialData = {
   initialURL: null,
 }
 
-let type;
-let array;
+let followType;
+let followList;
 
-let scriptSelected = prompt("Which script do you want to run?", "followers");
+let scriptSelected = prompt("Which script do you want to run? (opt: followers or following)", "followers");
 
-if (scriptSelected !== "followers") {
-  await startScript(CONFIG.FOLLOWING);
-} else {
-  await startScript(CONFIG.FOLLOWERS);
+
+function generateStyledLog(message) {
+  const style = 'background: #222; color: #bada55; font-size: 25px;'
+  console.log(`%c ${message}`, style);
 }
 
-async function saveFile(type, array) {
-  console.log(`Start saving all ${type}`);
-  const blob = new Blob(["module.exports = ", JSON.stringify(array), ';'], {type: "text/javascript"});
-  const fileHandle = await window.showSaveFilePicker({id: type, suggestedName: `${new Date().toGMTString()}.js`})
-  const fileStream = await fileHandle.createWritable();
-  await fileStream.write(blob);
-  await fileStream.close();
-  console.log(`End saving all ${type}`);
+async function startExecution(scriptSelected) {
+  if (scriptSelected !== "followers") {
+    await startScript(CONFIG.FOLLOWING, initialData);
+  } else {
+    await startScript(CONFIG.FOLLOWERS, initialData);
+  }
 }
 
-async function startScript(config) {
-  const { HASH, PATH } = config;
+async function saveFile(followType, followList) {
+  try {
+    const userAgent = navigator.userAgent;
+
+    // chromium based browsers
+    if (userAgent.match(/chrome|chromium|crios/i)) {
+      console.log(`Start saving all ${type}`);
+      const blob = new Blob(["module.exports = ", JSON.stringify(array), ';'], {type: "text/javascript"});
+      const fileHandle = await window.showSaveFilePicker({id: type, suggestedName: `${new Date().getTime()}.js`});
+      const fileStream = await fileHandle.createWritable();
+      await fileStream.write(blob);
+      await fileStream.close();
+      console.log(`End saving all ${type}`);
+      return;
+    }
+
+    // other browser that do not support showSaveFilePicker
+    generateStyledLog(`Start saving all ${followType} ⏳`)
+    const blob = new Blob(["module.exports = ", JSON.stringify(followList), ';'], {type: "text/javascript"});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${new Date().getTime()}.js`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    generateStyledLog(`End saving all ${followType} ⌛`)
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function startScript(config, scriptData) {
+  const { HASH, PATH, NAME } = config;
   const isPathFollowing = PATH === 'edge_follow';
   const isPathFollowers = PATH === 'edge_followed_by';
 
-  if(!initialData.initialURL) {
-    initialData.initialURL = `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables={"id":"${initialData.dsUserId}","include_reel":"true","fetch_mutual":"false","first":"24"}`; //?
+  if(!scriptData.initialURL) {
+    scriptData.initialURL = generateInitialUrl(HASH, scriptData.dsUserId);
   }
-  while (initialData.doNext) {
+
+  scriptData = await collectEdgeData(scriptData, HASH, PATH, isPathFollowing, isPathFollowers);
+
+  if (isPathFollowing) {
+    generateStyledLog(`You follow ${initialData.totalFollowing.length} users`);
+    generateStyledLog(`${initialData.totalUnfollowers.length} users don't follow you back`);
+    followType = 'following';
+    followList = initialData.totalFollowing;
+  }
+
+  if (isPathFollowers) {
+    generateStyledLog(`${initialData.totalFollowers.length} users follow you`);
+    followType = 'followers';
+    followList = initialData.totalFollowers;
+  }
+
+  generateStyledLog("All DONE! 🚀");
+  console.warn(
+    '%c If download doesn\'t start automatically, please paste %csaveFile(followType, followList)%c and press return in order to start',
+    'font-size: 18px;', 'font-size: 18px; font-weight: bold;', 'font-size: 18px; font-weight: normal;'
+  );
+
+  if (confirm("Do you want to save it?") === true) {
+    await saveFile(followType, followList);
+  }
+
+  return scriptData;
+}
+
+async function collectEdgeData(scriptData, hash, path, isPathFollowing, isPathFollowers) {
+  while (scriptData.doNext) {
     let receivedData;
     try {
-      receivedData = await fetch(initialData.initialURL).then(res => res.json());
+      receivedData = await fetch(scriptData.initialURL).then(res => res.json());
     } catch (e) {
       continue;
     }
 
-    initialData.followedPeopleCount || (initialData.followedPeopleCount = receivedData.data.user[PATH].count);
+    scriptData = processData(receivedData, scriptData, hash, path, isPathFollowing, isPathFollowers);
 
-    initialData.doNext = receivedData.data.user[PATH].page_info.has_next_page;
-    initialData.initialURL = afterUrlGenerator(HASH, receivedData.data.user[PATH].page_info.end_cursor);
-    initialData.unfollowCounter += receivedData.data.user[PATH].edges.length;
-
-    receivedData.data.user[PATH].edges.forEach(x => {
-      if (isPathFollowing) {
-        const isUnfollower = !x.node.follows_viewer;
-        if (isUnfollower) {
-          initialData.totalUnfollowers.push(x.node);
-        }
-
-        initialData.totalFollowing.push(x.node);
-      }
-      if (isPathFollowers) {
-        initialData.totalFollowers.push(x.node);
-      }
-    })
-
-    console.log(`%c Progress ${initialData.unfollowCounter}/${initialData.followedPeopleCount} (${parseInt((initialData.unfollowCounter/initialData.followedPeopleCount)*100)}%)`, 'background: #222; color: #bada55;font-size: 35px;');
+    showProgressBar(scriptData);
 
     await sleep(Math.floor(400 * Math.random()) + 1000);
 
-    initialData.scrollCicle++;
+    scriptData.scrollCicle++;
 
-    if (initialData.scrollCicle > 6){
-      initialData.scrollCicle = 0;
-      console.log(`%c Sleeping 10 segs to prevent getting temp blocked`, 'background: #222; color: ##FF0000;font-size: 35px;');
-      await sleep(10000);
+    if (scriptData.scrollCicle > 6){
+      scriptData.scrollCicle = 0;
+      await sleep(10000); // Sleeping 10 segs to prevent getting temp blocked
     }
   }
 
-  if (isPathFollowing) {
-    console.log(`%c ${initialData.totalUnfollowers.length} users don't follow you`, 'background: #222; color: #bada55;font-size: 25px;');
-    console.log(`%c ${initialData.totalFollowing.length} users you are following`, 'background: #222; color: #bada55;font-size: 25px;');
-    type = 'following';
-    array = initialData.totalFollowing;
-
-  }
-
-  if (isPathFollowers) {
-    console.log(`%c ${initialData.totalFollowers.length} users don't follow you`, 'background: #222; color: #bada55;font-size: 25px;');
-    type = 'followers';
-    array = initialData.totalFollowers;
-  }
-
-  console.log(`%c All DONE!`, 'background: #222; color: #bada55;font-size: 25px;');
-  console.warn('Use saveFile to save data locally');
-
-  if (confirm("Do you want to save it?") === true) {
-    await saveFile(type, array);
-  }
+  return scriptData;
 }
+
+function calculateProgressBar(scriptData) {
+  let progress = 0;
+
+  for(let i = 0; i < (scriptData.unfollowCounter/scriptData.followedPeopleCount)*100; i+=10) {
+    progress++;
+  }
+  return buildProgressBar(scriptData, progress);
+}
+
+function showProgressBar(scriptData) {
+  const percentage = `${Math.floor((scriptData.unfollowCounter/scriptData.followedPeopleCount)*100)}%`;
+  const progressBar = calculateProgressBar(scriptData);
+
+  console.clear();
+  console.log(
+    `%c Progress: %c${(progressBar)} %c${percentage} (${scriptData.unfollowCounter}/${scriptData.followedPeopleCount})`
+    , LOG_STYLE, LOG_STYLE.concat('color: #FFD700'), LOG_STYLE
+  );
+}
+
+function buildProgressBar(scriptData, progress) {
+  const filledBlocks = Array(Math.round(progress)).fill('█');
+  const emptyBlocks = Array(10 - Math.round(progress)).fill('..');
+
+  return filledBlocks.concat(emptyBlocks).join('');
+}
+
+function processData(receivedData, scriptData, HASH, PATH, isPathFollowing, isPathFollowers) {
+  scriptData.followedPeopleCount = scriptData.followedPeopleCount || receivedData.data.user[PATH].count;
+  scriptData.doNext = receivedData.data.user[PATH].page_info.has_next_page;
+  scriptData.initialURL = generateNextUrl(HASH, scriptData.dsUserId, receivedData.data.user[PATH].page_info.end_cursor);
+  scriptData.unfollowCounter += receivedData.data.user[PATH].edges.length;
+
+  receivedData.data.user[PATH].edges.forEach(x => {
+    if (isPathFollowing) {
+      const isUnfollower = !x.node.follows_viewer;
+      if (isUnfollower) {
+        scriptData.totalUnfollowers.push(x.node);
+      }
+
+      scriptData.totalFollowing.push(x.node);
+    }
+    if (isPathFollowers) {
+      scriptData.totalFollowers.push(x.node);
+    }
+  })
+
+  return scriptData;
+}
+
+startExecution(scriptSelected).then((result) => result);

@@ -1,86 +1,94 @@
 const fs = require('fs');
-const { getFileHelper, constants, utils } = require('../helpers');
+const path = require('path');
+const constants = require('../helpers/constants');
+const { findUser, getFollowsList, sortBy } = require('../common');
+const { exec } = require('child_process');
 
 const {
-  CONSTANTS: {
-    OLD_FILE_INDEX,
-    LAST_FILE_INDEX,
-    DIR_FOLLOWING_PATH,
+    PREVIEWS_FILE_INDEX,
+    CURRENT_FILE_INDEX,
+    FOLLOWING_PATH,
     HISTORY_FOLLOWING_PATH,
-  } = {},
 } = constants;
 
-const { sortBy } = utils;
-const { getFile } = getFileHelper;
+const previousFollowingFileName = getFollowsList(FOLLOWING_PATH, PREVIEWS_FILE_INDEX); //?
+const currentFollowingFileName = getFollowsList(FOLLOWING_PATH, CURRENT_FILE_INDEX); //?
 
-const oldFollowingFileName = getFile(DIR_FOLLOWING_PATH, OLD_FILE_INDEX).file;
-const lastFollowingFileName = getFile(DIR_FOLLOWING_PATH, LAST_FILE_INDEX).file;
+const previousFollowingList = require(`../lists/following/${previousFollowingFileName}`);
+const currentFollowingList = require(`../lists/following/${currentFollowingFileName}`);
 
-const oldFollowingList = require(`../lists/following/${oldFollowingFileName}`);
-const lastFollowingList = require(`../lists/following/${lastFollowingFileName}`);
+const followingLists = { previousFollowingList, currentFollowingList };
 
-const followingLists = { oldFollowingList, lastFollowingList };
-
-// New pages we started following
-function getNewFollowing({ oldFollowingList, lastFollowingList }) {
-  return lastFollowingList
-    .filter(({ id }) => !oldFollowingList.find((user) => user.id === id));
+function getNewUsersWeFollow({ previousFollowingList, currentFollowingList }) {
+  return currentFollowingList.filter(({ id }) => !findUser(previousFollowingList, id));
 }
 
-// Was not following us but started following
-function getStartedFollowingUs({ oldFollowingList, lastFollowingList }) {
-  return lastFollowingList.filter((user) => (
-    oldFollowingList
-      .find(({id, follows_viewer}) => {
-        const isSameUser = user.id === id;
-        const startedFollowingUs = follows_viewer === false && user.follows_viewer === true;
-        return isSameUser && startedFollowingUs;
-      }
-  )))
+function getUsersStartingFollowingUs({ previousFollowingList, currentFollowingList }) {
+  return currentFollowingList.filter(({ id }) => findUser(previousFollowingList, id));
 }
 
-function startsProssessingFollowingStatistics() {
-  // We follow but is not following back
-  const notFollowingBack = followingLists.lastFollowingList
-    .filter(({ follows_viewer }) => !follows_viewer)
+function getUsersStartingFollowingBack(lists) {
+  return getUsersStartingFollowingUs(lists)
+    .filter(({followed_by_viewer, follows_viewer}) => (
+      followed_by_viewer && follows_viewer
+    ))
+}
 
-  // New user we follow
-  const newFollowing = getNewFollowing(followingLists);
+function getUsersNotFollowingBack(list) {
+  return list.filter(({ follows_viewer }) => !follows_viewer);
+}
 
-  // Started following back after we follow them
-  const followedAndFollowedBack = getNewFollowing(followingLists)
-    .filter(({followed_by_viewer, follows_viewer}) => followed_by_viewer && follows_viewer)
 
-  const startedFollowingUs = getStartedFollowingUs(followingLists)
+async function startFollowingStatistics() {
+  const newUsersWeFollow = getNewUsersWeFollow(followingLists);
+  const startedFollowingUs = getUsersStartingFollowingUs(followingLists);
 
-  console.log(`START COMPARING FOLLOWING LISTS!
-  - Old list ${oldFollowingFileName}
-  - Last list ${lastFollowingFileName}
+  // Users we follow but are not following back
+  const usersNotFollowingUsBack = getUsersNotFollowingBack(currentFollowingList)
+
+  // Users that started following back after we follow them
+  const usersStartingFollwingBack = getUsersStartingFollowingBack(followingLists);
+
+  const filePath = path.join(__dirname, HISTORY_FOLLOWING_PATH);
+
+  console.log(`
+  START COMPARING FOLLOWING LISTS!
+    - Old list ${previousFollowingFileName}
+    - Last list ${currentFollowingFileName}
+
+  File saved on : ${filePath}
   `);
 
-  //CMD + OPTION + L
-  fs.writeFile(
-    HISTORY_FOLLOWING_PATH,
-    JSON.stringify({
-        "NEW_PAGES_WE_FOLLOW": {
-          length: newFollowing.length,
-          follow: sortBy(newFollowing),
-          "followed back": sortBy(followedAndFollowedBack),
-        },
-        "NOT_FOLLOW_BACK": {
-          length: notFollowingBack.length,
-          array: sortBy(notFollowingBack),
-        },
-        "STARTED_FOLLOWING_US": {
-          length: startedFollowingUs.length,
-          array: sortBy(startedFollowingUs),
-        },
-      }
-    ),
-    function (err) {
-      if (err) return console.log(err);
-    }
-  );
+  await fs.promises.writeFile(filePath, JSON.stringify(
+    {
+      "NEW_PAGES_WE_FOLLOW": {
+        length: newUsersWeFollow.length,
+        follow: sortBy(newUsersWeFollow)
+      },
+      "FOLLOWED_BACK": {
+        length: usersStartingFollwingBack.length,
+        array: sortBy(usersStartingFollwingBack)
+      },
+      "NOT_FOLLOW_BACK": {
+        length: usersNotFollowingUsBack.length,
+        array: sortBy(usersNotFollowingUsBack)
+      },
+      "STARTED_FOLLOWING_US": {
+        length: startedFollowingUs.length,
+        array: sortBy(startedFollowingUs) },
+    }, null, 2));
+
+  exec(`"/Applications/WebStorm.app/Contents/MacOS/webstorm" "${filePath}" &`,
+    (err, stdout, stderr) => {
+      if (err) console.log(`exec error: ${err}`);
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+   });
 }
 
-module.exports.startsProssessingFollowingStatistics = startsProssessingFollowingStatistics;
+module.exports = {
+  getNewUsersWeFollow,
+  getUsersStartingFollowingBack,
+  getUsersNotFollowingBack,
+  startFollowingStatistics
+};

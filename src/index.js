@@ -1,7 +1,7 @@
-const startFollowersStatistics = require('./followers');
-const startsProssessingFollowingStatistics = require('./following');
+const { startFollowersStatistics } = require('./followers');
+const { startFollowingStatistics } = require('./following');
 
 module.exports = {
   startFollowersStatistics,
-  startsProssessingFollowingStatistics,
+  startFollowingStatistics,
 }
