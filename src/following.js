@@ -1,7 +1,6 @@
 const fs = require('fs');
-const path = require('path');
 const constants = require('../helpers/constants');
-const { findUser, getFollowsList, sortBy } = require('../common');
+const { findUser, getFollowsList, sortBy, getPath } = require('../common');
 const { exec } = require('child_process');
 
 const {
@@ -11,11 +10,11 @@ const {
     HISTORY_FOLLOWING_PATH,
 } = constants;
 
-const previousFollowingFileName = getFollowsList(FOLLOWING_PATH, PREVIEWS_FILE_INDEX); //?
-const currentFollowingFileName = getFollowsList(FOLLOWING_PATH, CURRENT_FILE_INDEX); //?
+const previousFollowingFileName = getFollowsList(FOLLOWING_PATH, PREVIEWS_FILE_INDEX);
+const currentFollowingFileName = getFollowsList(FOLLOWING_PATH, CURRENT_FILE_INDEX);
 
-const previousFollowingList = require(`../lists/following/${previousFollowingFileName}`);
-const currentFollowingList = require(`../lists/following/${currentFollowingFileName}`);
+const previousFollowingList = getPath(FOLLOWING_PATH, previousFollowingFileName);
+const currentFollowingList = getPath(FOLLOWING_PATH, currentFollowingFileName);
 
 const followingLists = { previousFollowingList, currentFollowingList };
 
@@ -38,7 +37,6 @@ function getUsersNotFollowingBack(list) {
   return list.filter(({ follows_viewer }) => !follows_viewer);
 }
 
-
 async function startFollowingStatistics() {
   const newUsersWeFollow = getNewUsersWeFollow(followingLists);
   const startedFollowingUs = getUsersStartingFollowingUs(followingLists);
@@ -49,17 +47,15 @@ async function startFollowingStatistics() {
   // Users that started following back after we follow them
   const usersStartingFollwingBack = getUsersStartingFollowingBack(followingLists);
 
-  const filePath = path.join(__dirname, HISTORY_FOLLOWING_PATH);
-
   console.log(`
   START COMPARING FOLLOWING LISTS!
     - Old list ${previousFollowingFileName}
     - Last list ${currentFollowingFileName}
 
-  File saved on : ${filePath}
+  File saved on : ${HISTORY_FOLLOWING_PATH}
   `);
 
-  await fs.promises.writeFile(filePath, JSON.stringify(
+  await fs.promises.writeFile(HISTORY_FOLLOWING_PATH, JSON.stringify(
     {
       "NEW_PAGES_WE_FOLLOW": {
         length: newUsersWeFollow.length,
@@ -78,7 +74,7 @@ async function startFollowingStatistics() {
         array: sortBy(startedFollowingUs) },
     }, null, 2));
 
-  exec(`"/Applications/WebStorm.app/Contents/MacOS/webstorm" "${filePath}" &`,
+  exec(`"/Applications/WebStorm.app/Contents/MacOS/webstorm" "${HISTORY_FOLLOWING_PATH}" &`,
     (err, stdout, stderr) => {
       if (err) console.log(`exec error: ${err}`);
       console.log(`stdout: ${stdout}`);

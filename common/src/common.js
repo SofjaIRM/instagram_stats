@@ -1,8 +1,4 @@
 const getFileHelper = require('../../helpers/getFileHelper');
-const constants = require('../../helpers/constants')
-const { join } = require('path');
-
-const normalizePath = (path) =>  join(__dirname, path);
 
 const { getFileName } = getFileHelper;
 
@@ -11,18 +7,24 @@ function findUser(list, id) {
 }
 
 function getFollowsList(dir, fileIndex) {
-  const path = normalizePath(dir);
-  const fileName = getFileName(path, fileIndex);
-  return `${dir}${fileName}`;
+  return getFileName(dir, fileIndex);
 }
 
 function sortBy(list, property = 'username') {
   return list.map(( user ) => user[property]).sort();
 }
 
+function getPath(path, fileName) {
+  if (!fileName) return undefined;
+
+  return require(`${path}${fileName}`);
+}
+
+
 
 module.exports = {
   findUser,
+  getPath,
   getFollowsList,
   sortBy
 }

@@ -1,24 +1,27 @@
 const fs = require('fs');
 const { SYSTEM_FILES_LIST } = require('../helpers/constants');
 
+function toValidDate(file) {
+  return Number(file.replace('.js', ''));
+}
 
-const getFileName = (dir, index) => {
-  const files = orderRecentFiles(dir);
+function getFileName (dir, index) {
+  const files = sortByRecentFiles(dir);
   return files.length ? files[index] : undefined;
-};
+}
 
 function isNotSystemFiles(filename) {
   const systemFilesRegex = new RegExp(SYSTEM_FILES_LIST.join('|'));
   return !systemFilesRegex.test(filename);
 }
 
-function orderRecentFiles(dir) {
+function sortByRecentFiles(dir) {
   return fs.readdirSync(dir)
     .filter(isNotSystemFiles)
     .sort((a, b) => {
-      return b - a;
+      return toValidDate(b) - toValidDate(a);
     });
-};
+}
 
 module.exports = {
   getFileName,
