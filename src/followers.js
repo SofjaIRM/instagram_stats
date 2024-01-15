@@ -47,6 +47,15 @@ function getRenamedChannel({previousFollowersList, currentFollowersList}) {
 }
 
 async function startFollowersStatistics() {
+  if(!previousFollowersList || !currentFollowersList) {
+    console.log('At least two files are required to compare data!');
+    return;
+  }
+  if(!currentFollowingList) {
+    console.log('No current following list found!');
+    return;
+  }
+
   const newFollowers = getNewFollowers(followersLists);
   const unfollowers = getUnfollowers(followersLists);
   const unfollowersWeFollow = getUnfollowersWeFollow(currentFollowingList, unfollowers);

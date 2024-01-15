@@ -38,6 +38,11 @@ function getUsersNotFollowingBack(list) {
 }
 
 async function startFollowingStatistics() {
+  if(!previousFollowingList || !currentFollowingList) {
+    console.log('At least two files are required to compare data!');
+    return;
+  }
+
   const newUsersWeFollow = getNewUsersWeFollow(followingLists);
   const startedFollowingUs = getUsersStartingFollowingUs(followingLists);
 
