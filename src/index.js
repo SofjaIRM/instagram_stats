@@ -36,6 +36,16 @@ const askQuestion = () => {
           askQuestion();
         }
         break;
+      case 'exit': {
+        rl.question('Are you sure you want to exit? (y/n)', (answer) => {
+          if (answer.match(/^y(es)?$/i)) {
+            rl.close();
+            process.stdin.end();
+          } else{
+            askQuestion();
+          }
+        })}
+        break;
       default:
         console.error('\x1b[31mInvalid selection! Select a valid option!\x1b[0m');
         askQuestion(); // repete a pergunta
