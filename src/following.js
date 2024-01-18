@@ -80,9 +80,11 @@ async function startFollowingStatistics() {
 
   exec(`"/Applications/WebStorm.app/Contents/MacOS/webstorm" "${HISTORY_FOLLOWING_PATH}" &`,
     (err, stdout, stderr) => {
-      if (err) console.log(`exec error: ${err}`);
-      console.log(`stdout: ${stdout}`);
-      console.error(`stderr: ${stderr}`);
+      if(err) {
+        console.log(`exec error: ${err}`);
+        console.log(`stdout: ${stdout}`);
+        console.error(`stderr: ${stderr}`);
+      }
    });
 }
 

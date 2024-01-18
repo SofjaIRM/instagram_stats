@@ -89,9 +89,11 @@ async function startFollowersStatistics() {
 
   exec(`"/Applications/WebStorm.app/Contents/MacOS/webstorm" "${HISTORY_FOLLOWERS_PATH}" &`,
     (err, stdout, stderr) => {
-      if (err) console.log(`exec error: ${err}`);
-      console.log(`stdout: ${stdout}`);
-      console.error(`stderr: ${stderr}`);
+      if(err) {
+        console.log(`exec error: ${err}`);
+        console.log(`stdout: ${stdout}`);
+        console.error(`stderr: ${stderr}`);
+      }
   });
 }
 
