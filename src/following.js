@@ -39,8 +39,7 @@ function getUsersNotFollowingBack(list) {
 
 async function startFollowingStatistics() {
   if(!previousFollowingList || !currentFollowingList) {
-    console.log('At least two files are required to compare data!');
-    return;
+    throw new Error('At least two files are required to compare data!');
   }
 
   const newUsersWeFollow = getNewUsersWeFollow(followingLists);

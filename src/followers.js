@@ -48,12 +48,10 @@ function getRenamedChannel({previousFollowersList, currentFollowersList}) {
 
 async function startFollowersStatistics() {
   if(!previousFollowersList || !currentFollowersList) {
-    console.log('At least two files are required to compare data!');
-    return;
+    throw new Error('At least two files are required to compare data!');
   }
   if(!currentFollowingList) {
-    console.log('No current following list found!');
-    return;
+    throw new Error('No current following list found!');
   }
 
   const newFollowers = getNewFollowers(followersLists);
