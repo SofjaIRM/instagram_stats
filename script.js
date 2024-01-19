@@ -66,10 +66,16 @@ function generateStyledLog(message) {
 }
 
 async function startExecution(scriptSelected) {
-  if (scriptSelected !== "followers") {
-    await startScript(INSTAGRAM_CONFIG.FOLLOWING, initialData);
-  } else {
-    await startScript(INSTAGRAM_CONFIG.FOLLOWERS, initialData);
+  switch (scriptSelected.toString().toLowerCase()) {
+    case INSTAGRAM_CONFIG.FOLLOWERS.NAME:
+      await startScript(INSTAGRAM_CONFIG.FOLLOWERS, scriptState);
+      break;
+    case INSTAGRAM_CONFIG.FOLLOWING.NAME:
+      await startScript(INSTAGRAM_CONFIG.FOLLOWING, scriptState);
+      console.log('IS COMMING TO FOLLOWING TOO');
+      break;
+    default:
+      console.log('You didn\'t select any of the available options');
   }
 }
 
