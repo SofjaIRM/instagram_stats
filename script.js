@@ -151,7 +151,8 @@ async function collectEdgeData(scriptData, hash, path, isPathFollowing, isPathFo
 
     if (scriptData.scrollCicle > 6){
       scriptData.scrollCicle = 0;
-      await sleep(10000); // Sleeping 10 segs to prevent getting temp blocked
+      console.log('Sleeping 10 segs to prevent getting blocked');
+      await sleep(10000);
     }
   }
 
