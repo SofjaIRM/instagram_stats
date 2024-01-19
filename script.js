@@ -1,19 +1,19 @@
-const CONFIG = {
+const INSTAGRAM_CONFIG = {
   FOLLOWERS: {
     HASH: 'c76146de99bb02f6415203be841dd25a',
     PATH: 'edge_followed_by',
-    NAME: 'Followed Count'
+    NAME: 'followers',
   },
   FOLLOWING: {
     HASH: '3dec7e2c57367ef3da3d987d89f9dbc8',
     PATH: 'edge_follow',
-    NAME: 'Followers Count'
-  }
+    NAME: 'following'
+  },
+  LOG_STYLE: "background: #222; color: #bada55; font-size: 25px;",
+  SERVER_URL: "https://www.instagram.com/graphql/query/",
+  EDGE_FOLLOW: "edge_follow",
+  EDGE_FOLLOWED_BY: "edge_followed_by",
 };
-
-const LOG_STYLE = "background: #222; color: #bada55; font-size: 25px;"
-
-const SERVER_URL = "https://www.instagram.com/graphql/query/";
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -36,10 +36,10 @@ function generateUrlParams(hash, ds_user_id, nextCode) {
 }
 
 function generateInitialUrl(hash, ds_user_id) {
-  return `${SERVER_URL}${generateUrlParams(hash, ds_user_id)}`;
+  return `${INSTAGRAM_CONFIG.SERVER_URL}${generateUrlParams(hash, ds_user_id)}`;
 }
 function generateNextUrl(hash, ds_user_id, nextCode) {
-  return `${SERVER_URL}${generateUrlParams(hash, ds_user_id, nextCode)}`
+  return `${INSTAGRAM_CONFIG.SERVER_URL}${generateUrlParams(hash, ds_user_id, nextCode)}`
 }
 
 const initialData = {
@@ -67,29 +67,14 @@ function generateStyledLog(message) {
 
 async function startExecution(scriptSelected) {
   if (scriptSelected !== "followers") {
-    await startScript(CONFIG.FOLLOWING, initialData);
+    await startScript(INSTAGRAM_CONFIG.FOLLOWING, initialData);
   } else {
-    await startScript(CONFIG.FOLLOWERS, initialData);
+    await startScript(INSTAGRAM_CONFIG.FOLLOWERS, initialData);
   }
 }
 
 async function saveFile(followType, followList) {
   try {
-    const userAgent = navigator.userAgent;
-
-    // chromium based browsers
-    if (userAgent.match(/chrome|chromium|crios/i)) {
-      console.log(`Start saving all ${type}`);
-      const blob = new Blob(["module.exports = ", JSON.stringify(array), ';'], {type: "text/javascript"});
-      const fileHandle = await window.showSaveFilePicker({id: type, suggestedName: `${new Date().getTime()}.js`});
-      const fileStream = await fileHandle.createWritable();
-      await fileStream.write(blob);
-      await fileStream.close();
-      console.log(`End saving all ${type}`);
-      return;
-    }
-
-    // other browser that do not support showSaveFilePicker
     generateStyledLog(`Start saving all ${followType} ⏳`)
     const blob = new Blob(["module.exports = ", JSON.stringify(followList), ';'], {type: "text/javascript"});
     const a = document.createElement('a');
@@ -105,9 +90,9 @@ async function saveFile(followType, followList) {
 }
 
 async function startScript(config, scriptData) {
-  const { HASH, PATH, NAME } = config;
-  const isPathFollowing = PATH === 'edge_follow';
-  const isPathFollowers = PATH === 'edge_followed_by';
+  const { HASH, PATH } = config;
+  const isPathFollowing = PATH === INSTAGRAM_CONFIG.EDGE_FOLLOW;
+  const isPathFollowers = PATH === INSTAGRAM_CONFIG.EDGE_FOLLOWED_BY;
 
   if(!scriptData.initialURL) {
     scriptData.initialURL = generateInitialUrl(HASH, scriptData.dsUserId);
@@ -183,7 +168,7 @@ function showProgressBar(scriptData) {
   console.clear();
   console.log(
     `%c Progress: %c${(progressBar)} %c${percentage} (${scriptData.unfollowCounter}/${scriptData.followedPeopleCount})`
-    , LOG_STYLE, LOG_STYLE.concat('color: #FFD700'), LOG_STYLE
+    , INSTAGRAM_CONFIG.LOG_STYLE, INSTAGRAM_CONFIG.LOG_STYLE.concat('color: #FFD700'), INSTAGRAM_CONFIG.LOG_STYLE
   );
 }
 
