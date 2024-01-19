@@ -42,7 +42,7 @@ function generateNextUrl(hash, ds_user_id, nextCode) {
   return `${INSTAGRAM_CONFIG.SERVER_URL}${generateUrlParams(hash, ds_user_id, nextCode)}`
 }
 
-const initialData = {
+const scriptState = {
   dsUserId: getCookie("ds_user_id"),
   followedPeopleCount: null,
   totalUnfollowers: [],
@@ -107,16 +107,16 @@ async function startScript(config, scriptData) {
   scriptData = await collectEdgeData(scriptData, HASH, PATH, isPathFollowing, isPathFollowers);
 
   if (isPathFollowing) {
-    generateStyledLog(`You follow ${initialData.totalFollowing.length} users`);
-    generateStyledLog(`${initialData.totalUnfollowers.length} users don't follow you back`);
+    generateStyledLog(`You follow ${scriptState.totalFollowing.length} users`);
+    generateStyledLog(`${scriptState.totalUnfollowers.length} users don't follow you back`);
     followType = 'following';
-    followList = initialData.totalFollowing;
+    followList = scriptState.totalFollowing;
   }
 
   if (isPathFollowers) {
-    generateStyledLog(`${initialData.totalFollowers.length} users follow you`);
+    generateStyledLog(`${scriptState.totalFollowers.length} users follow you`);
     followType = 'followers';
-    followList = initialData.totalFollowers;
+    followList = scriptState.totalFollowers;
   }
 
   generateStyledLog("All DONE! 🚀");
