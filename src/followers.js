@@ -22,7 +22,17 @@ const previousFollowersFileName = getFollowsList(FOLLOWERS_PATH, PREVIEWS_FILE_I
 const currentFollowersFileName = getFollowsList(FOLLOWERS_PATH, CURRENT_FILE_INDEX);
 const currentFollowingFileName = getFollowsList(FOLLOWING_PATH, CURRENT_FILE_INDEX);
 
-const previousFollowersList = getPath(FOLLOWERS_PATH, previousFollowersFileName);
+const previousFollowersFileDate = new Date(
+  toValidDate(previousFollowersFileName),
+).toDateString();
+const currentFollowersFileDate = new Date(
+  toValidDate(currentFollowersFileName),
+).toDateString();
+
+const previousFollowersList = getPath(
+  FOLLOWERS_PATH,
+  previousFollowersFileName,
+);
 const currentFollowersList = getPath(FOLLOWERS_PATH, currentFollowersFileName);
 const currentFollowingList = getPath(FOLLOWING_PATH, currentFollowingFileName);
 
@@ -57,8 +67,15 @@ async function startFollowersStatistics() {
   if(!previousFollowersList || !currentFollowersList) {
     throw new Error('At least two files are required to compare data!');
   }
-  if(!currentFollowingList) {
-    throw new Error('No current following list found!');
+
+  if (previousFollowersFileDate === currentFollowersFileDate) {
+    throw new Error(
+      "Files share the same date. This could result in less insightful comparisons!",
+    );
+  }
+
+  if (!currentFollowingList) {
+    throw new Error("No current following list found!");
   }
 
   const newFollowers = getNewFollowers(followersLists);
@@ -68,8 +85,8 @@ async function startFollowersStatistics() {
 
   console.log(`
   START COMPARING FOLLOWERS LISTS!
-    - Old list ${previousFollowersFileName}
-    - Last list ${currentFollowersFileName}
+    - Old list ${previousFollowersFileName} (${previousFollowersFileDate})
+    - Last list ${currentFollowersFileName} (${currentFollowersFileDate})
   
   File saved on: ${HISTORY_FOLLOWERS_PATH}
   `);

@@ -19,7 +19,17 @@ const {
 const previousFollowingFileName = getFollowsList(FOLLOWING_PATH, PREVIEWS_FILE_INDEX);
 const currentFollowingFileName = getFollowsList(FOLLOWING_PATH, CURRENT_FILE_INDEX);
 
-const previousFollowingList = getPath(FOLLOWING_PATH, previousFollowingFileName);
+const previousFollowingFileDate = new Date(
+  toValidDate(previousFollowingFileName),
+).toDateString();
+const currentFollowingFileDate = new Date(
+  toValidDate(currentFollowingFileName),
+).toDateString();
+
+const previousFollowingList = getPath(
+  FOLLOWING_PATH,
+  previousFollowingFileName,
+);
 const currentFollowingList = getPath(FOLLOWING_PATH, currentFollowingFileName);
 
 const followingLists = { previousFollowingList, currentFollowingList };
@@ -44,8 +54,14 @@ function getUsersNotFollowingBack(list) {
 }
 
 async function startFollowingStatistics() {
-  if(!previousFollowingList || !currentFollowingList) {
-    throw new Error('At least two files are required to compare data!');
+  if (!previousFollowingList || !currentFollowingList) {
+    throw new Error("At least two files are required to compare data!");
+  }
+
+  if (previousFollowingFileDate === currentFollowingFileDate) {
+    throw new Error(
+      "Files share the same date. This could result in less insightful comparisons!",
+    );
   }
 
   const newUsersWeFollow = getNewUsersWeFollow(followingLists);
@@ -59,8 +75,8 @@ async function startFollowingStatistics() {
 
   console.log(`
   START COMPARING FOLLOWING LISTS!
-    - Old list ${previousFollowingFileName}
-    - Last list ${currentFollowingFileName}
+    - Old list ${previousFollowingFileName} (${previousFollowingFileDate})
+    - Last list ${currentFollowingFileName} (${currentFollowingFileDate})
 
   File saved on : ${HISTORY_FOLLOWING_PATH}
   `);
