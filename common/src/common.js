@@ -12,8 +12,8 @@ function getFollowsList(dir, fileIndex) {
   return getFileName(dir, fileIndex);
 }
 
-function sortBy(list, property = 'username') {
-  return list.map(( user ) => user[property]).sort();
+function sortBy(list, property = "username") {
+  return list.map((user) => user[property]).sort();
 }
 
 function getPath(path, fileName) {

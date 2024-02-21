@@ -11,16 +11,25 @@ const {
 const { toValidDate } = require("../helpers/getFileHelper");
 
 const {
-    PREVIEWS_FILE_INDEX,
-    CURRENT_FILE_INDEX,
-    FOLLOWERS_PATH,
-    FOLLOWING_PATH,
-    HISTORY_FOLLOWERS_PATH,
+  PREVIEWS_FILE_INDEX,
+  CURRENT_FILE_INDEX,
+  FOLLOWERS_PATH,
+  FOLLOWING_PATH,
+  HISTORY_FOLLOWERS_PATH,
 } = constants;
 
-const previousFollowersFileName = getFollowsList(FOLLOWERS_PATH, PREVIEWS_FILE_INDEX);
-const currentFollowersFileName = getFollowsList(FOLLOWERS_PATH, CURRENT_FILE_INDEX);
-const currentFollowingFileName = getFollowsList(FOLLOWING_PATH, CURRENT_FILE_INDEX);
+const previousFollowersFileName = getFollowsList(
+  FOLLOWERS_PATH,
+  PREVIEWS_FILE_INDEX,
+);
+const currentFollowersFileName = getFollowsList(
+  FOLLOWERS_PATH,
+  CURRENT_FILE_INDEX,
+);
+const currentFollowingFileName = getFollowsList(
+  FOLLOWING_PATH,
+  CURRENT_FILE_INDEX,
+);
 
 const previousFollowersFileDate = new Date(
   toValidDate(previousFollowersFileName),
@@ -38,34 +47,42 @@ const currentFollowingList = getPath(FOLLOWING_PATH, currentFollowingFileName);
 
 const followersLists = { previousFollowersList, currentFollowersList };
 
-function getNewFollowers({previousFollowersList, currentFollowersList}) {
-  return currentFollowersList.filter(({ id }) => !findUser(previousFollowersList, id));
+function getNewFollowers({ previousFollowersList, currentFollowersList }) {
+  return currentFollowersList.filter(
+    ({ id }) => !findUser(previousFollowersList, id),
+  );
 }
 
-function getUnfollowers({previousFollowersList, currentFollowersList}) {
-  return previousFollowersList.filter(({ id }) => !findUser(currentFollowersList, id))
+function getUnfollowers({ previousFollowersList, currentFollowersList }) {
+  return previousFollowersList.filter(
+    ({ id }) => !findUser(currentFollowersList, id),
+  );
 }
 
 function getUnfollowersWeFollow(lastWeFollowList, currentUnfollowersList) {
-  return currentUnfollowersList.filter(({ id }) => findUser(lastWeFollowList, id));
+  return currentUnfollowersList.filter(({ id }) =>
+    findUser(lastWeFollowList, id),
+  );
 }
 
-function getRenamedChannel({previousFollowersList, currentFollowersList}) {
+function getRenamedChannel({ previousFollowersList, currentFollowersList }) {
   return currentFollowersList
-    .filter(({id, username}) => (
-      previousFollowersList
-        .find((user) => (user.id === id) && (user.username !== username))))
-    .map(({id, username}) => {
+    .filter(({ id, username }) =>
+      previousFollowersList.find(
+        (user) => user.id === id && user.username !== username,
+      ),
+    )
+    .map(({ id, username }) => {
       return {
-        "old": previousFollowersList.find((user) => (user.id === id)).username,
-        "current": username
+        old: previousFollowersList.find((user) => user.id === id).username,
+        current: username,
       };
     });
 }
 
 async function startFollowersStatistics() {
-  if(!previousFollowersList || !currentFollowersList) {
-    throw new Error('At least two files are required to compare data!');
+  if (!previousFollowersList || !currentFollowersList) {
+    throw new Error("At least two files are required to compare data!");
   }
 
   if (previousFollowersFileDate === currentFollowersFileDate) {
@@ -80,7 +97,10 @@ async function startFollowersStatistics() {
 
   const newFollowers = getNewFollowers(followersLists);
   const unfollowers = getUnfollowers(followersLists);
-  const unfollowersWeFollow = getUnfollowersWeFollow(currentFollowingList, unfollowers);
+  const unfollowersWeFollow = getUnfollowersWeFollow(
+    currentFollowingList,
+    unfollowers,
+  );
   const renamed = getRenamedChannel(followersLists);
 
   console.log(`
@@ -91,25 +111,31 @@ async function startFollowersStatistics() {
   File saved on: ${HISTORY_FOLLOWERS_PATH}
   `);
 
-  await fs.promises.writeFile(HISTORY_FOLLOWERS_PATH, JSON.stringify(
-    {
-      "NEW_FOLLOWERS": {
-        length: newFollowers.length,
-        array: sortBy(newFollowers)
+  await fs.promises.writeFile(
+    HISTORY_FOLLOWERS_PATH,
+    JSON.stringify(
+      {
+        NEW_FOLLOWERS: {
+          length: newFollowers.length,
+          array: sortBy(newFollowers),
+        },
+        UNFOLLOWED_US: {
+          length: unfollowers.length,
+          array: sortBy(unfollowers),
+        },
+        UNFOLLOWED_US_AND_WE_FOLLOW: {
+          length: unfollowersWeFollow.length,
+          array: sortBy(unfollowersWeFollow),
+        },
+        RENAMED_CHANNEL: {
+          length: renamed.length,
+          array: renamed,
+        },
       },
-      "UNFOLLOWED_US": {
-        length: unfollowers.length,
-        array: sortBy(unfollowers)
-      },
-      "UNFOLLOWED_US_AND_WE_FOLLOW": {
-        length: unfollowersWeFollow.length,
-        array: sortBy(unfollowersWeFollow)
-      },
-      "RENAMED_CHANNEL": {
-        length: renamed.length,
-        array: renamed
-      },
-    }, null, 2));
+      null,
+      2,
+    ),
+  );
 
   openFile(HISTORY_FOLLOWERS_PATH);
 }
@@ -119,5 +145,5 @@ module.exports = {
   getNewFollowers,
   getUnfollowers,
   getUnfollowersWeFollow,
-  startFollowersStatistics
+  startFollowersStatistics,
 };
