@@ -1,7 +1,13 @@
-const fs = require('fs');
-const constants = require('../helpers/constants');
-const { findUser, getFollowsList, sortBy, getPath } = require('../common');
-const { exec } = require('child_process');
+const fs = require("fs");
+const constants = require("../helpers/constants");
+const { toValidDate } = require("../helpers/getFileHelper");
+const {
+  findUser,
+  getFollowsList,
+  sortBy,
+  getPath,
+  openFile,
+} = require("../common");
 
 const {
     PREVIEWS_FILE_INDEX,
@@ -78,14 +84,7 @@ async function startFollowingStatistics() {
         array: sortBy(startedFollowingUs) },
     }, null, 2));
 
-  exec(`"/Applications/WebStorm.app/Contents/MacOS/webstorm" "${HISTORY_FOLLOWING_PATH}" &`,
-    (err, stdout, stderr) => {
-      if(err) {
-        console.log(`exec error: ${err}`);
-        console.log(`stdout: ${stdout}`);
-        console.error(`stderr: ${stderr}`);
-      }
-   });
+  openFile(HISTORY_FOLLOWING_PATH);
 }
 
 module.exports = {

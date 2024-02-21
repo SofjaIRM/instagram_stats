@@ -1,8 +1,15 @@
-const { findUser, getFollowsList, sortBy, getPath } = require('./src/common');
+const {
+  findUser,
+  getFollowsList,
+  sortBy,
+  getPath,
+  openFile
+} = require('./src/common');
 
 module.exports = {
   findUser,
   getFollowsList,
   sortBy,
-  getPath
+  getPath,
+  openFile
 }

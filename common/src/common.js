@@ -1,4 +1,6 @@
-const getFileHelper = require('../../helpers/getFileHelper');
+const getFileHelper = require("../../helpers/getFileHelper");
+const os = require("os");
+const { exec } = require("child_process");
 
 const { getFileName } = getFileHelper;
 
@@ -20,11 +22,28 @@ function getPath(path, fileName) {
   return require(`${path}${fileName}`);
 }
 
+function openFile(path) {
+  const platform = os.platform();
 
+  const osMap = {
+    darwin: "open",
+    win32: "start",
+    linux: "xdg-open",
+  };
+
+  exec(`${osMap[platform]} "${path}" &`, (err, stdout, stderr) => {
+    if (err) {
+      console.log(`exec error: ${err}`);
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+    }
+  });
+}
 
 module.exports = {
   findUser,
   getPath,
   getFollowsList,
-  sortBy
-}
+  sortBy,
+  openFile,
+};
